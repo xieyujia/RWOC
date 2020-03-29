@@ -142,7 +142,7 @@ class Iterator():
         return self.x[self.current_index-batch_size:self.current_index]
 
 if method=='nn':
-    Smodel = SNet(bs, bs, 2)
+    Smodel = SNet(bs, bs, 2).to(device)
     optimizer_S = torch.optim.SGD(
             Smodel.parameters(), lr=lr_S, momentum=0.9, weight_decay=5e-4)
 elif method == 'sinkhorn_naive':
@@ -155,7 +155,7 @@ elif method == 'sinkhorn_robust':
     Smodel = Sinkhorn_custom(method='robust', epsilon=epsilon, max_iter = max_inner_iter, \
                              )
     
-Rmodel = torch.nn.Linear(d1+d2, 1, bias=False)
+Rmodel = torch.nn.Linear(d1+d2, 1, bias=False).to(device)
 
 
 optimizer_R = torch.optim.SGD(
