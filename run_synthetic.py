@@ -115,8 +115,8 @@ y = x.dot(w) + noise*np.random.normal(size=[n,1])
 
 index = np.random.permutation(n)
 num_train = int(n*args.train_level)
-index_train = index[num_train:]
-index_val = index[:num_train]
+index_train = index[:num_train]
+index_val = index[num_train:]
 
 x1 = x[:, :d1]
 x2 = x[index_train, d1:]
