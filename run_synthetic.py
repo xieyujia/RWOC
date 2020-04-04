@@ -35,7 +35,7 @@ parser = argparse.ArgumentParser(description='Process some integers.')
 # data generation
 parser.add_argument('--data_type', type=str, default='normal',
                     help='normal | mix_normal | uniform')
-parser.add_argument('--n', type=int, default=int(1e5),
+parser.add_argument('--n', type=int, default=int(1e4),
                     help='total number of data')
 parser.add_argument('--train_level', type=float, default=0.8,
                     help='proportion of the total data used for training')
@@ -55,9 +55,9 @@ parser.add_argument('--batch_size', type=int, default=100,
                     help='batch size')
 parser.add_argument('--lr_S', type=float, default=1e-2,
                     help='learning rate for learning S, useful for when nn unroll')
-parser.add_argument('--lr_R', type=float, default=1e-2,
+parser.add_argument('--lr_R', type=float, default=1e-5,
                     help='learning rate for regression')
-parser.add_argument('--method', type=str, default='sinkhorn_stablized',
+parser.add_argument('--method', type=str, default='sinkhorn_robust',
                     help='nn | sinkhorn_naive | sinkhorn_stablized | sinkhorn_manual | sinkhorn_robust')
 parser.add_argument('--epsilon', type=float, default=1e-3,
                     help='entropy regularization coefficient, used for Sinkhorn')
@@ -153,7 +153,7 @@ elif method == 'sinkhorn_manual':
     Smodel = Sinkhorn_custom(method='manual', epsilon=epsilon, max_iter = max_inner_iter)
 elif method == 'sinkhorn_robust':
     Smodel = Sinkhorn_custom(method='robust', epsilon=epsilon, max_iter = max_inner_iter, \
-                             )
+                            rho1=0.02, rho2=0.02, eta=1e-2 )
     
 Rmodel = torch.nn.Linear(d1+d2, 1, bias=False).to(device)
 
@@ -169,6 +169,7 @@ loss_list = []
 batch_loss_list = []
 epoch_count = 0
 for batch_idx in range(max_iter):
+#    print(batch_idx)
     # Get data
     batch_x1 = data_iterator1.get_batch(bs)
     batch_x2_y = data_iterator2.get_batch(bs)
@@ -185,7 +186,7 @@ for batch_idx in range(max_iter):
     
     C = (batch_y-pred)**2
 #    C = C.sum(-1)
-    C = C / (C.max().detach())
+#    C = C / (C.max().detach())
     
     
     
@@ -214,14 +215,16 @@ for batch_idx in range(max_iter):
             
         
     else:
+        Smodel.epsilon = args.epsilon*(C.max().detach())
         optimizer_R.zero_grad()
         S = Smodel(C)
         loss = torch.sum(S*C)
         loss.backward()
         optimizer_R.step()
-        
+        if loss.data.item()>1e10:
+            break
     batch_loss_list.append(loss.item())
-    
+#    print('loss:', batch_loss_list[-1])
     
     if batch_idx % int(n/bs) == 0 and batch_idx!=0:
         epoch_count += 1
@@ -251,6 +254,7 @@ Rmodel.eval()
 Smodel.eval()
 data_iterator1.current_index = 0
 loss_val_list = []
+y_val_list = []
 for batch_idx in range(int(int(n-n*args.train_level)/val_bs)):
     # Get data
     batch_x1 = data_iterator1.get_batch(val_bs)
@@ -264,24 +268,27 @@ for batch_idx in range(int(int(n-n*args.train_level)/val_bs)):
     batch_x = torch.cat([batch_x1, batch_x2], dim=-1)
     pred = Rmodel(batch_x.view(val_bs*val_bs, -1)).view(val_bs, val_bs)
     
-    batch_y = batch_y.unsqueeze(1).repeat(1, val_bs)
+    batch_y_repeat = batch_y.unsqueeze(1).repeat(1, val_bs)
     
-    C = (batch_y-pred)**2
+    C = (batch_y_repeat-pred)**2
 #    C = C.sum(-1)
-    C = C / (C.max().detach())
+#    C = C / (C.max().detach())
     
     S = Smodel(C)
     loss_val = torch.sum(S*C)
-    loss_val_list.append(loss_val.item()/val_bs)
+    loss_val_list.append(loss_val.item())
+    y_val_list.extend(list(batch_y.data.numpy()))
 
-residual = np.mean(loss_val_list)
-print('val error is', residual)
+residual = np.sum(loss_val_list)
+var_y = np.sum((np.asarray(y_val_list) - np.mean(y_val_list))**2)
+print('val error is', residual/len(y_val_list))
+print('rel val error is', residual/var_y)
     
 if args.save_val_result:
     with open(args.save_val_result, 'a') as f:
         f.write('*'*80+'\n')
         f.write(str(args)+'\n')
-        f.write('Result: '+str(residual)+'\n')
+        f.write('Result: RSS:'+str(residual//len(y_val_list))+', RSS/TSS'+str(residual/var_y)+'\n')
         
 
 

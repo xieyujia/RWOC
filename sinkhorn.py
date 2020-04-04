@@ -54,7 +54,7 @@ def sinkhorn_forward_stablized(C, mu, nu, epsilon, max_iter):
 
 def robust_sinkhorn_forward(C, mu, nu, epsilon, max_iter, rho1, rho2, eta):
     bs, n, m = C.size()
-    small_value = 1e-20
+    small_value = 1e-10
     f = torch.zeros([bs, n, 1])
     g = torch.zeros([bs, 1, m])
     if torch.cuda.is_available():
@@ -111,8 +111,8 @@ def sinkhorn_backward(grad_output_Gamma, Gamma, mu, nu, epsilon):
     inv_mu = 1./(mu.view([1,-1]))  #[1, n]
     Kappa = torch.diag_embed(nu_.squeeze(-2)) \
             -torch.matmul(Gamma_.transpose(-1, -2) * inv_mu.unsqueeze(-2), Gamma_)   #[bs, k, k]
-    
-    inv_Kappa = torch.inverse(Kappa) #[bs, k, k]
+    nugget = 1e-10*torch.diag(torch.ones([k_-1], device=Kappa.device)).unsqueeze(0)
+    inv_Kappa = torch.inverse(Kappa+nugget) #[bs, k, k]
     
     Gamma_mu = inv_mu.unsqueeze(-1)*Gamma_
     L = Gamma_mu.matmul(inv_Kappa) #[bs, n, k]
@@ -124,7 +124,7 @@ def sinkhorn_backward(grad_output_Gamma, Gamma, mu, nu, epsilon):
     G22 = g1_L.matmul(Gamma_mu.transpose(-1,-2)).transpose(-1,-2)*Gamma  #[bs, n, k+1]
     G23 = - F.pad(g1_L, pad=(0, 1), mode='constant', value=0)*Gamma  #[bs, n, k+1]
     G2 = G21 + G22 + G23  #[bs, n, k+1]
-    
+#    print(Gamma_mu.max())
     del g1, G21, G22, G23, Gamma_mu
     
     g2 = G1.sum(-2).unsqueeze(-1) #[bs, k+1, 1]
@@ -134,6 +134,7 @@ def sinkhorn_backward(grad_output_Gamma, Gamma, mu, nu, epsilon):
     G3 = G31 + G32  #[bs, n, k+1]
 
     grad_C = (-G1+G2+G3)/epsilon  #[bs, n, k+1]
+#    print(inv_Kappa.max(),torch.max(grad_C), epsilon)
     return grad_C
 
 class TopKFunc(Function):
@@ -141,7 +142,7 @@ class TopKFunc(Function):
     def forward(ctx, C, mu, nu, epsilon, max_iter):
         
         with torch.no_grad():
-            if epsilon>1e-2:
+            if epsilon/C.max()>1e-2:
                 Gamma = sinkhorn_forward(C, mu, nu, epsilon, max_iter)
                 if bool(torch.any(Gamma!=Gamma)):
                     print('Nan appeared in Gamma, re-computing...')
@@ -173,6 +174,7 @@ class TopKFunc_robust(Function):
             Gamma, mu, nu = robust_sinkhorn_forward(C, mu, nu, epsilon, max_iter, rho1, rho2, eta)
             ctx.save_for_backward(mu, nu, Gamma)
             ctx.epsilon = epsilon
+#            print('-----------------------------\n', mu, nu)
         return Gamma
     
 
