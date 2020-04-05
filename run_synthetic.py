@@ -55,7 +55,7 @@ parser.add_argument('--batch_size', type=int, default=100,
                     help='batch size')
 parser.add_argument('--lr_S', type=float, default=1e-2,
                     help='learning rate for learning S, useful for when nn unroll')
-parser.add_argument('--lr_R', type=float, default=1e-5,
+parser.add_argument('--lr_R', type=float, default=5e-6,
                     help='learning rate for regression')
 parser.add_argument('--method', type=str, default='sinkhorn_robust',
                     help='nn | sinkhorn_naive | sinkhorn_stablized | sinkhorn_manual | sinkhorn_robust')
@@ -65,6 +65,12 @@ parser.add_argument('--max_inner_iter', type=int, default=200,
                     help='inner iteration number, used for Sinkhorn')
 parser.add_argument('--unroll_steps', type=int, default=5,
                     help='number of unrolling steps, used for nn')
+parser.add_argument('--rho1', type=float, default=0.02,
+                    help='relaxition for the first marginal')
+parser.add_argument('--rho2', type=float, default=0.02,
+                    help='relaxition for the second marginal')
+parser.add_argument('--eta', type=float, default=1e-2,
+                    help='grad for projected gradient descent for robust OT')
 parser.add_argument('--seed_train', type=int, default=0,
                     help='seed for traning')
 
@@ -153,7 +159,7 @@ elif method == 'sinkhorn_manual':
     Smodel = Sinkhorn_custom(method='manual', epsilon=epsilon, max_iter = max_inner_iter)
 elif method == 'sinkhorn_robust':
     Smodel = Sinkhorn_custom(method='robust', epsilon=epsilon, max_iter = max_inner_iter, \
-                            rho1=0.02, rho2=0.02, eta=1e-2 )
+                            rho1=args.rho1, rho2=args.rho2, eta=args.eta )
     
 Rmodel = torch.nn.Linear(d1+d2, 1, bias=False).to(device)
 
@@ -224,7 +230,7 @@ for batch_idx in range(max_iter):
         if loss.data.item()>1e10:
             break
     batch_loss_list.append(loss.item())
-#    print('loss:', batch_loss_list[-1])
+    print('loss:', batch_loss_list[-1])
     
     if batch_idx % int(n/bs) == 0 and batch_idx!=0:
         epoch_count += 1
