@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Created on Sat Apr  4 21:45:11 2020
+
+@author: yujia
+"""
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
 Created on Thu Mar 19 16:22:25 2020
 
 @author: yujia
@@ -51,26 +59,12 @@ parser.add_argument('--seed_data', type=int, default=1,
 # training
 parser.add_argument('--train_iter', type=int, default=2000,
                     help='total number of traning steps')
-parser.add_argument('--batch_size', type=int, default=200,
+parser.add_argument('--batch_size', type=int, default=100,
                     help='batch size')
-parser.add_argument('--lr_S', type=float, default=1e-2,
-                    help='learning rate for learning S, useful for when nn unroll')
-parser.add_argument('--lr_R', type=float, default=5e-6,
+parser.add_argument('--lr_R', type=float, default=1e-3,
                     help='learning rate for regression')
-parser.add_argument('--method', type=str, default='sinkhorn_robust',
-                    help='nn | sinkhorn_naive | sinkhorn_stablized | sinkhorn_manual | sinkhorn_robust')
-parser.add_argument('--epsilon', type=float, default=1e-3,
-                    help='entropy regularization coefficient, used for Sinkhorn')
-parser.add_argument('--max_inner_iter', type=int, default=200,
-                    help='inner iteration number, used for Sinkhorn')
-parser.add_argument('--unroll_steps', type=int, default=5,
-                    help='number of unrolling steps, used for nn')
-parser.add_argument('--rho1', type=float, default=0.1,
-                    help='relaxition for the first marginal')
-parser.add_argument('--rho2', type=float, default=0.1,
-                    help='relaxition for the second marginal')
-parser.add_argument('--eta', type=float, default=1e-2,
-                    help='grad for projected gradient descent for robust OT')
+parser.add_argument('--method', type=str, default='all',
+                    help='all | partial')
 parser.add_argument('--seed_train', type=int, default=0,
                     help='seed for traning')
 
@@ -97,12 +91,8 @@ noise = args.noise_level
 max_iter = args.train_iter
 bs = args.batch_size
 
-lr_S = args.lr_S
 lr_R = args.lr_R
 method = args.method
-epsilon = args.epsilon
-max_inner_iter = args.max_inner_iter
-unroll_steps = args.unroll_steps
 print_every = args.print_every
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -124,14 +114,21 @@ num_train = int(n*args.train_level)
 index_train = index[:num_train]
 index_val = index[num_train:]
 
-x1 = x[:, :d1]
-x2 = x[index_train, d1:]
-y_permute = y[index_train, :]
-x2_y = np.concatenate([x2, y_permute], axis=1)
-
-x2_val = x[index_val, d1:]
-y_val = y[index_val, :]
-x2_y_val = np.concatenate([x2_val, y_val], axis=1)
+if method=='all':
+    x_train = x[index_train,:]
+    y_train = y[index_train,:]
+    x_val = x[index_val,:]
+    y_val = y[index_val,:]
+elif method=='partial':
+    x_train = x[index_train,d1:]
+    y_train = y[index_train,:]
+    x_val = x[index_val,d1:]
+    y_val = y[index_val,:]
+else:
+    raise NotImplementedError
+    
+data_train = np.concatenate([x_train, y_train], axis=-1)
+data_val = np.concatenate([x_val, y_val], axis=-1)    
 
 class Iterator():
     def __init__(self, x):
@@ -148,87 +145,39 @@ class Iterator():
         else:
             self.current_index = self.current_index + batch_size
         return self.x[self.current_index-batch_size:self.current_index]
-
-if method=='nn':
-    Smodel = SNet(bs, bs, 2).to(device)
-    optimizer_S = torch.optim.SGD(
-            Smodel.parameters(), lr=lr_S, momentum=0.9, weight_decay=5e-4)
-elif method == 'sinkhorn_naive':
-    Smodel = Sinkhorn_custom(method='naive', epsilon=epsilon, max_iter = max_inner_iter)
-elif method == 'sinkhorn_stablized':
-    Smodel = Sinkhorn_custom(method='stablized', epsilon=epsilon, max_iter = max_inner_iter)
-elif method == 'sinkhorn_manual':
-    Smodel = Sinkhorn_custom(method='manual', epsilon=epsilon, max_iter = max_inner_iter)
-elif method == 'sinkhorn_robust':
-    Smodel = Sinkhorn_custom(method='robust', epsilon=epsilon, max_iter = max_inner_iter, \
-                            rho1=args.rho1, rho2=args.rho2, eta=args.eta )
     
-Rmodel = torch.nn.Linear(d1+d2, 1, bias=False).to(device)
+if method=='all':
+    Rmodel = torch.nn.Linear(d1+d2, 1, bias=False).to(device)
+elif method=='partial':
+    Rmodel = torch.nn.Linear(d2, 1, bias=False).to(device)
 
 
 optimizer_R = torch.optim.SGD(
     Rmodel.parameters(), lr=lr_R, momentum=0.9, weight_decay=5e-4)
 
-data_iterator1 = Iterator(x1)
-data_iterator2 = Iterator(x2_y)
-data_iterator_val = Iterator(x2_y_val)
+
+data_iterator_train = Iterator(data_train)
+data_iterator_val = Iterator(data_val)
 
 loss_list = []
 batch_loss_list = []
 epoch_count = 0
 for batch_idx in range(max_iter):
 #    print(batch_idx)
+    
+    optimizer_R.zero_grad()
     # Get data
-    batch_x1 = data_iterator1.get_batch(bs)
-    batch_x2_y = data_iterator2.get_batch(bs)
+    batch = data_iterator_train.get_batch(bs)
     
-    batch_x2 = batch_x2_y[:, :-1]
-    batch_y = batch_x2_y[:,-1]
+    batch_x = batch[:, :-1]
+    batch_y = batch[:,-1]
     
-    batch_x1 = batch_x1.unsqueeze(0).repeat(bs, 1, 1)
-    batch_x2 = batch_x2.unsqueeze(1).repeat(1, bs, 1)
-    batch_x = torch.cat([batch_x1, batch_x2], dim=-1)
-    pred = Rmodel(batch_x.view(bs*bs, -1)).view(bs, bs)
-    
-    batch_y = batch_y.unsqueeze(1).repeat(1, bs)
-    
-    C = (batch_y-pred)**2
-#    C = C.sum(-1)
-#    C = C / (C.max().detach())
-    
-    if method=='nn':
-        
-        C_detached = C.detach()
-    
-        for unroll_step in range(unroll_steps):
-            optimizer_S.zero_grad()
-            S = Smodel(C_detached)
-            loss = torch.sum(S*C_detached)
-            loss.backward()
-            optimizer_S.step()
-    #        print(loss.item())
-            if unroll_step == 0:
-                S_backup = [param.data.clone() for param in Smodel.parameters()]
-    
-        optimizer_R.zero_grad()
-        S = Smodel(C)
-        loss = torch.sum(S*C)
-        loss.backward()
-        optimizer_R.step()
-        
-        for param_backup, param_now in zip(S_backup, Smodel.parameters()):
-            param_now.data = param_backup.clone()
-            
-        
-    else:
-        Smodel.epsilon = args.epsilon*(C.max().detach())
-        optimizer_R.zero_grad()
-        S = Smodel(C)
-        loss = torch.sum(S*C)
-        loss.backward()
-        optimizer_R.step()
-        if loss.data.item()>1e10:
-            break
+    pred = Rmodel(batch_x).squeeze(-1)
+
+    loss = torch.mean((batch_y-pred)**2)
+    loss.backward()
+    optimizer_R.step()
+       
     batch_loss_list.append(loss.item())
 #    print('loss:', batch_loss_list[-1])
     
@@ -248,40 +197,25 @@ for batch_idx in range(max_iter):
 if args.visual:
     plt.plot(loss_list)
     plt.show()
-#%%
-    
-    plt.imshow(S[0,:,:].data.numpy())
-    plt.show()
 
 #%%
 # val
 val_bs = 100
 Rmodel.eval()
-Smodel.eval()
-data_iterator1.current_index = 0
 loss_val_list = []
 y_val_list = []
 for batch_idx in range(int(int(n-n*args.train_level)/val_bs)):
     # Get data
-    batch_x1 = data_iterator1.get_batch(val_bs)
-    batch_x2_y = data_iterator_val.get_batch(val_bs)
+    optimizer_R.zero_grad()
+    # Get data
+    batch = data_iterator_val.get_batch(bs)
     
-    batch_x2 = batch_x2_y[:, :-1]
-    batch_y = batch_x2_y[:,-1]
+    batch_x = batch[:, :-1]
+    batch_y = batch[:,-1]
     
-    batch_x1 = batch_x1.unsqueeze(0).repeat(val_bs, 1, 1)
-    batch_x2 = batch_x2.unsqueeze(1).repeat(1, val_bs, 1)
-    batch_x = torch.cat([batch_x1, batch_x2], dim=-1)
-    pred = Rmodel(batch_x.view(val_bs*val_bs, -1)).view(val_bs, val_bs)
-    
-    batch_y_repeat = batch_y.unsqueeze(1).repeat(1, val_bs)
-    
-    C = (batch_y_repeat-pred)**2
-#    C = C.sum(-1)
-#    C = C / (C.max().detach())
-    
-    S = Smodel(C)
-    loss_val = torch.sum(S*C)
+    pred = Rmodel(batch_x).squeeze(-1)
+
+    loss_val = torch.sum((batch_y-pred)**2)
     loss_val_list.append(loss_val.item())
     y_val_list.extend(list(batch_y.data.numpy()))
 
