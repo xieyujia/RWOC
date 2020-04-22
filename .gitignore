@@ -2,10 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
+ C
+# extensions
 *.so
-
+deepMOT/clean_detections/*
 # Distribution / packaging
 .Python
 build/

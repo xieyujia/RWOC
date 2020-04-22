@@ -35,11 +35,11 @@ parser = argparse.ArgumentParser(description='Process some integers.')
 # data generation
 parser.add_argument('--data_type', type=str, default='normal',
                     help='normal | mix_normal | uniform')
-parser.add_argument('--n', type=int, default=int(1e4),
+parser.add_argument('--n', type=int, default=int(1e3),
                     help='total number of data')
 parser.add_argument('--train_level', type=float, default=0.8,
                     help='proportion of the total data used for training')
-parser.add_argument('--d1', type=int, default=3,
+parser.add_argument('--d1', type=int, default=1,
                     help='dimension of the features on the first platform')
 parser.add_argument('--d2', type=int, default=2,
                     help='dimension of the features on the second platform')
@@ -49,17 +49,17 @@ parser.add_argument('--seed_data', type=int, default=1,
                     help='seed for data generation')
 
 # training
-parser.add_argument('--train_iter', type=int, default=2000,
+parser.add_argument('--train_iter', type=int, default=200,
                     help='total number of traning steps')
-parser.add_argument('--batch_size', type=int, default=200,
+parser.add_argument('--batch_size', type=int, default=100,
                     help='batch size')
 parser.add_argument('--lr_S', type=float, default=1e-2,
                     help='learning rate for learning S, useful for when nn unroll')
-parser.add_argument('--lr_R', type=float, default=5e-6,
+parser.add_argument('--lr_R', type=float, default=5e-7,
                     help='learning rate for regression')
 parser.add_argument('--method', type=str, default='sinkhorn_robust',
                     help='nn | sinkhorn_naive | sinkhorn_stablized | sinkhorn_manual | sinkhorn_robust')
-parser.add_argument('--epsilon', type=float, default=1e-3,
+parser.add_argument('--epsilon', type=float, default=1e-4,
                     help='entropy regularization coefficient, used for Sinkhorn')
 parser.add_argument('--max_inner_iter', type=int, default=200,
                     help='inner iteration number, used for Sinkhorn')
@@ -69,7 +69,7 @@ parser.add_argument('--rho1', type=float, default=0.1,
                     help='relaxition for the first marginal')
 parser.add_argument('--rho2', type=float, default=0.1,
                     help='relaxition for the second marginal')
-parser.add_argument('--eta', type=float, default=1e-2,
+parser.add_argument('--eta', type=float, default=1e-3,
                     help='grad for projected gradient descent for robust OT')
 parser.add_argument('--seed_train', type=int, default=0,
                     help='seed for traning')
@@ -294,7 +294,7 @@ if args.save_val_result:
     with open(args.save_val_result, 'a') as f:
         f.write('*'*80+'\n')
         f.write(str(args)+'\n')
-        f.write('Result: RSS:'+str(residual//len(y_val_list))+', RSS/TSS'+str(residual/var_y)+'\n')
+        f.write('Result: RSS:'+str(residual/len(y_val_list))+', RSS/TSS'+str(residual/var_y)+'\n')
         
 
 

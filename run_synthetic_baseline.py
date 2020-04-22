@@ -43,21 +43,21 @@ parser = argparse.ArgumentParser(description='Process some integers.')
 # data generation
 parser.add_argument('--data_type', type=str, default='normal',
                     help='normal | mix_normal | uniform')
-parser.add_argument('--n', type=int, default=int(1e4),
+parser.add_argument('--n', type=int, default=int(1e3),
                     help='total number of data')
 parser.add_argument('--train_level', type=float, default=0.8,
                     help='proportion of the total data used for training')
-parser.add_argument('--d1', type=int, default=3,
+parser.add_argument('--d1', type=int, default=10,
                     help='dimension of the features on the first platform')
 parser.add_argument('--d2', type=int, default=2,
                     help='dimension of the features on the second platform')
-parser.add_argument('--noise_level', type=float, default=0.1,
+parser.add_argument('--noise_level', type=float, default=0.5,
                     help='noise added')
 parser.add_argument('--seed_data', type=int, default=1,
                     help='seed for data generation')
 
 # training
-parser.add_argument('--train_iter', type=int, default=2000,
+parser.add_argument('--train_iter', type=int, default=200,
                     help='total number of traning steps')
 parser.add_argument('--batch_size', type=int, default=100,
                     help='batch size')
@@ -228,7 +228,7 @@ if args.save_val_result:
     with open(args.save_val_result, 'a') as f:
         f.write('*'*80+'\n')
         f.write(str(args)+'\n')
-        f.write('Result: RSS:'+str(residual//len(y_val_list))+', RSS/TSS'+str(residual/var_y)+'\n')
+        f.write('Result: RSS:'+str(residual/len(y_val_list))+', RSS/TSS'+str(residual/var_y)+'\n')
         
 
 
