@@ -149,7 +149,7 @@ def robust_sinkhorn_forward(C, mu, nu, epsilon, max_iter, rho1, rho2, eta):
         #gradient on mu and nu
 #        mu -= eta*f
         mu = mu-eta*(f+epsilon*torch.log(mu))
-        mu = mu*(mu>=0)+small_value
+        mu = mu*(mu>=0).float()+small_value
         mu = mu/torch.sum(mu, dim=1)
         delta_mu0 = mu-mu0
         current_diff = torch.norm(delta_mu0,dim=1)
@@ -161,7 +161,7 @@ def robust_sinkhorn_forward(C, mu, nu, epsilon, max_iter, rho1, rho2, eta):
             
 #        nu -= eta*g
         nu = nu-eta*(g+epsilon*torch.log(nu))
-        nu = nu*(nu>=0)+small_value
+        nu = nu*(nu>=0).float()+small_value
         nu = nu/torch.sum(nu, dim=-1)
         delta_nu0 = nu-nu0
         current_diff = torch.norm(delta_nu0,dim=-1)
@@ -204,8 +204,8 @@ class TopKFunc_robust(Function):
             
             x1 = torch.sum((mu1-mu)[:, :n1, 0], dim=-1)
             x2 = torch.sum((mu1-mu)[:, n1:, 0], dim=-1)
-            b1 = torch.sum(f[:, :n1, 0], dim=-1, keepdims=True)
-            b2 = torch.sum(f[:, n1:, 0], dim=-1, keepdims=True)
+            b1 = torch.sum(f[:, :n1, 0]+epsilon*torch.log(mu1[:,:n1,0]), dim=-1, keepdim=True)
+            b2 = torch.sum(f[:, n1:, 0]+epsilon*torch.log(mu1[:,n1:,0]), dim=-1, keepdim=True)
             weights = torch.stack([torch.stack([ones*n1,x1],dim=-1), torch.stack([ones*(n-n1),x2],dim=-1)], dim=-2)
 #            print(weights, torch.stack([b1, b2],dim=-1))
             lambda1 = torch.inverse(weights).bmm(torch.stack([b1, b2],dim=-2)) 
@@ -213,8 +213,8 @@ class TopKFunc_robust(Function):
             
             x1 = torch.sum((nu1-nu)[:, :m1, 0], dim=-1)
             x2 = torch.sum((nu1-nu)[:, m1:, 0], dim=-1)
-            b1 = torch.sum(g[:, :m1, 0], dim=-1, keepdims=True)
-            b2 = torch.sum(g[:, m1:, 0], dim=-1, keepdims=True)
+            b1 = torch.sum(g[:, :m1, 0]+epsilon*torch.log(nu1[:,:m1,0]), dim=-1, keepdim=True)
+            b2 = torch.sum(g[:, m1:, 0]+epsilon*torch.log(nu1[:,m1:,0]), dim=-1, keepdim=True)
             weights = torch.stack([torch.stack([ones*m1,x1],dim=-1), torch.stack([ones*(m-m1),x2],dim=-1)], dim=-2)
             lambda2 = torch.inverse(weights).bmm(torch.stack([b1, b2],dim=-2)) 
 #            print(lambda2)

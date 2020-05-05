@@ -117,7 +117,7 @@ def getWarpMatrix(im1, im2):
     termination_eps = 0.00001
     criteria = (cv2.TERM_CRITERIA_EPS | cv2.TermCriteria_COUNT, number_of_iterations, termination_eps)
 
-    cc, warp_matrix = cv2.findTransformECC(im2Gray_ref, im1Gray, warp_matrix, warp_mode, criteria)
+    cc, warp_matrix = cv2.findTransformECC(im2Gray_ref, im1Gray, warp_matrix, warp_mode, criteria, None, 1)
     return warp_matrix
 
 # torch version #

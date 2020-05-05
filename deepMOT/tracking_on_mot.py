@@ -362,15 +362,15 @@ if __name__ == '__main__':
 
     # init sot tracker #
     print("loading trained tracker from: ")
-    print(args.models_root + 'trainedSOTtoMOT.pth')
+    print(args.models_root )
     sot_tracker = SiamRPNvot()
-    sot_tracker.load_state_dict(torch.load(args.models_root + 'trainedSOTtoMOT.pth'))
+    sot_tracker.load_state_dict(torch.load(args.models_root ))
 
     # init appearance model #
     print("loading appearance model from: ")
-    print(args.models_root + 'DAN.pth')
+    print(  'pretrained/DAN.pth')
     sst = build_sst('test', 900)
-    sst.load_state_dict(torch.load(args.models_root + 'DAN.pth'))
+    sst.load_state_dict(torch.load( 'pretrained/DAN.pth'))
 
     if args.is_cuda:
         sot_tracker.cuda()

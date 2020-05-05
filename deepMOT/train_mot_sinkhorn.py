@@ -322,7 +322,7 @@ if __name__ == '__main__':
     parser.add_argument('--is_cuda', dest='is_cuda', default=True, type=bool, help='use cuda?')
     parser.add_argument('--seq_len', dest='seq_len', default=100, type=int, help='small sequence length')
     parser.add_argument('--epochs', dest='epochs', default=30, type=int, help='number of training epochs')
-    parser.add_argument('--old_lr', dest='old_lr', default=0.0001, type=float, help='initial learning rate')
+    parser.add_argument('--old_lr', dest='old_lr', default=1e-5, type=float, help='initial learning rate')
     parser.add_argument('--print_freq', dest='print_freq', default=200, type=int, help='print loss frequency')
     parser.add_argument('--ref_freq', dest='ref_freq', default=10, type=int, help='update reference images frequency')
     parser.add_argument('--smax_scale', dest='smax_scale', default=10.0, type=float, help='softmax scaling factor')
@@ -339,9 +339,9 @@ if __name__ == '__main__':
                         help='entropy regularization coefficient, used for Sinkhorn')
     parser.add_argument('--max_inner_iter', type=int, default=200,
                         help='inner iteration number, used for Sinkhorn')
-    parser.add_argument('--rho1', type=float, default=0.1,
+    parser.add_argument('--rho1', type=float, default=1e-3,
                         help='relaxition for the first marginal')
-    parser.add_argument('--rho2', type=float, default=0.1,
+    parser.add_argument('--rho2', type=float, default=1e-3,
                         help='relaxition for the second marginal')
     parser.add_argument('--eta', type=float, default=1e-3,
                         help='grad for projected gradient descent for robust OT')
@@ -350,8 +350,8 @@ if __name__ == '__main__':
 
     # init sot tracker #
     sot_tracker = SiamRPNvot()
-    print("loading SOT from: ", args.models_root + 'SiamRPNVOT.model')
-    sot_tracker.load_state_dict(torch.load(args.models_root + 'SiamRPNVOT.model'))
+    print("loading SOT from: ", args.models_root + 'trainedSOTtoMOT.pth')
+    sot_tracker.load_state_dict(torch.load(args.models_root + 'trainedSOTtoMOT.pth'))
 
     # freeze first three conv layers (feature extraction layers)
     cntr = 0

@@ -6,6 +6,9 @@ __pycache__/
 # extensions
 *.so
 deepMOT/clean_detections/*
+deepMOT/data/*
+deepMOT/pretrained/*
+deepMOT/saved*
 # Distribution / packaging
 .Python
 build/
