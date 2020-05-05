@@ -9,6 +9,7 @@ deepMOT/clean_detections/*
 deepMOT/data/*
 deepMOT/pretrained/*
 deepMOT/saved*
+deepMOT/logs/*
 # Distribution / packaging
 .Python
 build/
