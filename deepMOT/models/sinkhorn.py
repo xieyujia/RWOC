@@ -199,7 +199,8 @@ class TopKFunc_robust(Function):
             bs, n, m = Gamma.size()
             n1 = int(n/2)
             m1 = int(m/2)
-                       
+            small_value = 1e-10
+             
             ones = torch.ones([bs], device=Gamma.device,requires_grad=False)
             
             x1 = torch.sum((mu1-mu)[:, :n1, 0], dim=-1)
@@ -207,7 +208,7 @@ class TopKFunc_robust(Function):
             b1 = torch.sum(f[:, :n1, 0]+epsilon*torch.log(mu1[:,:n1,0]), dim=-1, keepdim=True)
             b2 = torch.sum(f[:, n1:, 0]+epsilon*torch.log(mu1[:,n1:,0]), dim=-1, keepdim=True)
             weights = torch.stack([torch.stack([ones*n1,x1],dim=-1), torch.stack([ones*(n-n1),x2],dim=-1)], dim=-2)
-#            print(weights, torch.stack([b1, b2],dim=-1))
+            weights = torch.eye(2, device=Gamma.device).unsqueeze(0)+weights
             lambda1 = torch.inverse(weights).bmm(torch.stack([b1, b2],dim=-2)) 
 #            print(lambda1)
             
@@ -216,6 +217,7 @@ class TopKFunc_robust(Function):
             b1 = torch.sum(g[:, :m1, 0]+epsilon*torch.log(nu1[:,:m1,0]), dim=-1, keepdim=True)
             b2 = torch.sum(g[:, m1:, 0]+epsilon*torch.log(nu1[:,m1:,0]), dim=-1, keepdim=True)
             weights = torch.stack([torch.stack([ones*m1,x1],dim=-1), torch.stack([ones*(m-m1),x2],dim=-1)], dim=-2)
+            weights = torch.eye(2, device=Gamma.device).unsqueeze(0)+weights
             lambda2 = torch.inverse(weights).bmm(torch.stack([b1, b2],dim=-2)) 
 #            print(lambda2)
             

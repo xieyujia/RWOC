@@ -350,8 +350,8 @@ if __name__ == '__main__':
 
     # init sot tracker #
     sot_tracker = SiamRPNvot()
-    print("loading SOT from: ", args.models_root + 'trainedSOTtoMOT.pth')
-    sot_tracker.load_state_dict(torch.load(args.models_root + 'trainedSOTtoMOT.pth'))
+    print("loading SOT from: ", args.models_root )
+    sot_tracker.load_state_dict(torch.load(args.models_root ))
 
     # freeze first three conv layers (feature extraction layers)
     cntr = 0
