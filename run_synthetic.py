@@ -49,7 +49,7 @@ parser.add_argument('--seed_data', type=int, default=1,
                     help='seed for data generation')
 
 # training
-parser.add_argument('--train_iter', type=int, default=100,
+parser.add_argument('--train_iter', type=int, default=2000,
                     help='total number of traning steps')
 parser.add_argument('--batch_size', type=int, default=100,
                     help='batch size')
@@ -227,7 +227,7 @@ for batch_idx in range(max_iter):
         loss = torch.sum(S*C)
         loss.backward()
         
-        print(list(Rmodel.parameters())[0].grad)
+#        print(list(Rmodel.parameters())[0].grad)
         
         optimizer_R.step()
         if loss.data.item()>1e10:

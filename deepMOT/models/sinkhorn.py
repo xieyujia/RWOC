@@ -175,6 +175,26 @@ def robust_sinkhorn_forward(C, mu, nu, epsilon, max_iter, rho1, rho2, eta):
 
 
 
+def sinkhorn_robust_backward_get_inverse(grad_output_Gamma, Gamma, mu, nu, epsilon):
+    
+    nu_ = nu[:,:,:-1]
+    Gamma_ = Gamma[:,:,:-1]
+
+    bs, n, k_ = Gamma.size()
+    
+    inv_mu = 1./(mu.view([1,-1]))  #[1, n]
+    Kappa = torch.diag_embed(nu_.squeeze(-2)) \
+            -torch.matmul(Gamma_.transpose(-1, -2) * inv_mu.unsqueeze(-2), Gamma_)   #[bs, k, k]
+    nugget = 1e-10*torch.diag(torch.ones([k_-1], device=Kappa.device)).unsqueeze(0)
+    inv_Kappa = torch.inverse(Kappa+nugget) #[bs, k, k]
+#    print(inv_mu.max(), inv_Kappa.max())
+    Gamma_mu = inv_mu.unsqueeze(-1)*Gamma_
+    L = Gamma_mu.matmul(inv_Kappa) #[bs, n, k]
+    H1 = torch.diag_embed(inv_mu) + L.matmul(Gamma_mu.transpose(-1,-2))
+    H2 = F.pad(-L, pad=(0, 1), mode='constant', value=0)
+    H4 = F.pad(inv_Kappa, pad=(0, 1, 0, 1), mode='constant', value=0)
+    return H1, H2, H4
+
 class TopKFunc_robust(Function):
     @staticmethod
     def forward(ctx, C, mu, nu, epsilon, max_iter, rho1, rho2, eta):
@@ -183,6 +203,8 @@ class TopKFunc_robust(Function):
             Gamma, mu1, nu1, f, g = robust_sinkhorn_forward(C, mu, nu, epsilon, max_iter, rho1, rho2, eta)
             ctx.save_for_backward(mu, nu, Gamma, mu1, nu1, f, g)
             ctx.epsilon = epsilon
+            ctx.rho1 = rho1
+            ctx.rho2 = rho2
 #            print('-----------------------------\n')
         return Gamma
     
@@ -192,6 +214,8 @@ class TopKFunc_robust(Function):
         
         epsilon = ctx.epsilon
         mu, nu, Gamma, mu1, nu1, f, g = ctx.saved_tensors
+        rho1 = ctx.rho1
+        rho2 = ctx.rho2
         # mu [1, n, 1]
         # nu [1, 1, k+1]
         #Gamma [bs, n, k+1]   
@@ -210,7 +234,6 @@ class TopKFunc_robust(Function):
             weights = torch.stack([torch.stack([ones*n1,x1],dim=-1), torch.stack([ones*(n-n1),x2],dim=-1)], dim=-2)
             weights = torch.eye(2, device=Gamma.device).unsqueeze(0)+weights
             lambda1 = torch.inverse(weights).bmm(torch.stack([b1, b2],dim=-2)) 
-#            print(lambda1)
             
             x1 = torch.sum((nu1-nu)[:, :m1, 0], dim=-1)
             x2 = torch.sum((nu1-nu)[:, m1:, 0], dim=-1)
@@ -221,12 +244,47 @@ class TopKFunc_robust(Function):
             lambda2 = torch.inverse(weights).bmm(torch.stack([b1, b2],dim=-2)) 
 #            print(lambda2)
             
-            mu_adjust = mu1 + epsilon/(2*lambda1[:,1]+epsilon/mu1)
-            nu_adjust = nu1 + epsilon/(2*lambda2[:,1]+epsilon/nu1)
+            D1_inv = epsilon/(2*lambda1[:,1,:]+epsilon/mu1.squeeze(-1))
+            D2_inv = epsilon/(2*lambda2[:,1,:]+epsilon/nu1.squeeze(-2))
+            mu_adjust = mu1 + D1_inv.unsqueeze(-1)
+            nu_adjust = nu1 + D2_inv.unsqueeze(-2)
             
-#            print(mu_adjust, nu_adjust)
+            D_inv = torch.cat([D1_inv, D2_inv],dim=-1)
+
+            H1, H2, H4 = sinkhorn_robust_backward_get_inverse(grad_output_Gamma, Gamma, mu_adjust, nu_adjust, epsilon)
+            A1 = torch.cat([torch.cat([H1, H2],dim=-1), torch.cat([H2.transpose(-2,-1), H4],dim=-1)], dim=-2)
+            A2 = - A1*D_inv.unsqueeze(-2)
+            A4 = torch.diag_embed(D_inv) + A1*D_inv.unsqueeze(-1)
             
-            grad_C = sinkhorn_backward(grad_output_Gamma, Gamma, mu_adjust, nu_adjust, epsilon)
+            B11 = torch.cat([torch.ones([1, n], device=Gamma.device), torch.zeros([1, m], device=Gamma.device)],dim=-1)
+            B12 = 1-B11
+            B13 = torch.cat([2*(mu1-mu).squeeze(-1), torch.zeros([1, m], device=Gamma.device)],dim=-1)
+            B14 = torch.cat([torch.zeros([1, n], device=Gamma.device), 2*(nu1-nu).squeeze(-2)],dim=-1)
+            B1 = torch.stack([B11, B12, B13, B14],dim=-1)
+            
+            C1 = torch.stack([B11, B12, B13*lambda1[:,1], B14*lambda2[:,1]],dim=-1).transpose(-1,-2)
+
+            residual1 = torch.norm(mu1-mu)**2 - rho1
+            residual2 = torch.norm(nu1-nu)**2 - rho2
+            res = torch.FloatTensor([0,0,residual1.item(), residual2.item()]).to(Gamma.device)
+            plus_kernel = torch.diag_embed(res).unsqueeze(0) - C1.bmm(A4).bmm(B1)
+            plus_kernel_inv = torch.inverse(plus_kernel)
+            
+            plus = A2.matmul(B1).matmul(plus_kernel_inv).matmul(C1).matmul(A2.transpose(-1,-2))
+            A_inv_core = A1 + plus
+            
+            dphi = A_inv_core[:,:n,:n].unsqueeze(-1)*Gamma.unsqueeze(-3)  \
+                   + A_inv_core[:,:n,n:].unsqueeze(-2)*Gamma.unsqueeze(-3) 
+            dzeta = A_inv_core[:,n:,:n].unsqueeze(-1)*Gamma.unsqueeze(-3)  \
+                   + A_inv_core[:,n:,n:].unsqueeze(-2)*Gamma.unsqueeze(-3) 
+                   
+            G = grad_output_Gamma*Gamma
+            grad_C = -G + (G.sum(-1).unsqueeze(-1).unsqueeze(-1)*dphi).sum(-3)  \
+                        + (G.sum(-2).unsqueeze(-1).unsqueeze(-1)*dzeta).sum(-3) 
+#            grad_C = grad_C/epsilon
+#            print(Gamma)
+#            print(grad_C)
+#            grad_C = sinkhorn_backward(grad_output_Gamma, Gamma, mu_adjust, nu_adjust, epsilon)
 #            print(torch.norm(grad_C))
         return grad_C, None, None, None, None, None, None, None
 
