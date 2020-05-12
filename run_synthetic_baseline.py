@@ -43,13 +43,13 @@ parser = argparse.ArgumentParser(description='Process some integers.')
 # data generation
 parser.add_argument('--data_type', type=str, default='normal',
                     help='normal | mix_normal | uniform')
-parser.add_argument('--n', type=int, default=int(1e3),
+parser.add_argument('--n', type=int, default=int(200),
                     help='total number of data')
 parser.add_argument('--train_level', type=float, default=0.8,
                     help='proportion of the total data used for training')
-parser.add_argument('--d1', type=int, default=10,
+parser.add_argument('--d1', type=int, default=1,
                     help='dimension of the features on the first platform')
-parser.add_argument('--d2', type=int, default=2,
+parser.add_argument('--d2', type=int, default=1,
                     help='dimension of the features on the second platform')
 parser.add_argument('--noise_level', type=float, default=0.5,
                     help='noise added')

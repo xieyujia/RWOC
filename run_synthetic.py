@@ -37,7 +37,7 @@ parser.add_argument('--data_type', type=str, default='normal',
                     help='normal | mix_normal | uniform')
 parser.add_argument('--n', type=int, default=int(1e3),
                     help='total number of data')
-parser.add_argument('--train_level', type=float, default=0.8,
+parser.add_argument('--train_level', type=float, default=0.9,
                     help='proportion of the total data used for training')
 parser.add_argument('--d1', type=int, default=1,
                     help='dimension of the features on the first platform')
@@ -49,13 +49,13 @@ parser.add_argument('--seed_data', type=int, default=1,
                     help='seed for data generation')
 
 # training
-parser.add_argument('--train_iter', type=int, default=200,
+parser.add_argument('--train_iter', type=int, default=100,
                     help='total number of traning steps')
 parser.add_argument('--batch_size', type=int, default=100,
                     help='batch size')
 parser.add_argument('--lr_S', type=float, default=1e-2,
                     help='learning rate for learning S, useful for when nn unroll')
-parser.add_argument('--lr_R', type=float, default=5e-7,
+parser.add_argument('--lr_R', type=float, default=5e-5,
                     help='learning rate for regression')
 parser.add_argument('--method', type=str, default='sinkhorn_robust',
                     help='nn | sinkhorn_naive | sinkhorn_stablized | sinkhorn_manual | sinkhorn_robust')
@@ -226,6 +226,9 @@ for batch_idx in range(max_iter):
         S = Smodel(C)
         loss = torch.sum(S*C)
         loss.backward()
+        
+        print(list(Rmodel.parameters())[0].grad)
+        
         optimizer_R.step()
         if loss.data.item()>1e10:
             break
@@ -239,20 +242,28 @@ for batch_idx in range(max_iter):
         
         if epoch_count % print_every == 0:
             print('epoch:', epoch_count, 'loss:', loss_list[-1])
+            
+#            print(w)
+#            print(list(Rmodel.parameters()))
     
     
 #    print(loss, list(Rmodel.parameters()))
 #%%
             
-# visual
-if args.visual:
-    plt.plot(loss_list)
-    plt.show()
+## visual
+#if args.visual:
+#    plt.plot(loss_list)
+#    plt.show()
+##%%
+#    
+#    plt.imshow(S[0,:,:].data.numpy())
+#    plt.show()
+
+
 #%%
     
-    plt.imshow(S[0,:,:].data.numpy())
-    plt.show()
-
+print(w)
+print(list(Rmodel.parameters()))
 #%%
 # val
 val_bs = 100
