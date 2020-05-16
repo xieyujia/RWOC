@@ -10,6 +10,7 @@ deepMOT/data/*
 deepMOT/pretrained/*
 deepMOT/saved*
 deepMOT/logs/*
+deepMOT/log*
 # Distribution / packaging
 .Python
 build/
