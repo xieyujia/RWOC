@@ -76,6 +76,7 @@ def main(args, sot_tracker, deepMunkres, optimizer, loss_writer):
 
             # load detections and gt bbox of this sequence
             frames_gt = read_txt_gtV2(pth + vname + '/gt/gt.txt')
+#            print(frames_gt)
             if len(frames_gt.keys()) == 0:
                 print("cannot load gt")
                 break
@@ -173,11 +174,12 @@ def main(args, sot_tracker, deepMunkres, optimizer, loss_writer):
                         for key, state_curr in states.items():  # FOR every track in PREVIOUS frame
                             # score_tensor is of shape 2,num_anchor_boxes
                             # ancrs is of shape num_anchor_boxes,4 numpy array #xyxy
-                            target_pos, target_sz, state_curr, [score_tensor, ancrs] = SiamRPN_track(state_curr, img_curr,
+                           print(key, state_curr) 
+                           target_pos, target_sz, state_curr, [score_tensor, ancrs] = SiamRPN_track(state_curr, img_curr,
                                                                                      sot_tracker, train=True,
                                                                                                      noisy_bool=True)
 
-                            tmp.append(torch.stack([target_pos[0] - target_sz[0] * 0.5,
+                           tmp.append(torch.stack([target_pos[0] - target_sz[0] * 0.5,
                                                     target_pos[1] - target_sz[1] * 0.5,
                                                     target_pos[0] + target_sz[0] * 0.5,
                                                     target_pos[1] + target_sz[1] * 0.5], dim=0).unsqueeze(0))
@@ -196,6 +198,7 @@ def main(args, sot_tracker, deepMunkres, optimizer, loss_writer):
                             mm, motp_mask, pre_id = missedMatchErrorV3(pre_id, gt_ids, id_track,
                                                                              softmaxed_col, states,
                                                                              toUpdate=True)
+#                            print(pre_id, gt_ids, id_track,'\n---------')
                         else:
                             mm, motp_mask, _ = missedMatchErrorV3(pre_id, gt_ids, id_track,
                                                                         softmaxed_col, states,

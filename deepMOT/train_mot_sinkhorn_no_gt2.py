@@ -160,7 +160,7 @@ def main(args, sot_tracker, deepMunkres, optimizer, loss_writer):
 
                             target_pos, target_sz = np.array([cx, cy]), np.array([target_w, target_h])
 
-                            state = SiamRPN_init(img_prev, target_pos, target_sz, sot_tracker, id_track[k],
+                            state = SiamRPN_init(img_prev, target_pos, target_sz, sot_tracker, str(id_track[k]),
                                                  train_bool=True)
 
                             states[count_ids+k] = state

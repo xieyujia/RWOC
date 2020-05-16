@@ -474,7 +474,7 @@ def update_target_image_train(predicted, id_track, dets, img_curr, states, SOT_t
 
         target_pos, target_sz = np.array([cx, cy]), np.array([target_w, target_h])
 
-        state = SiamRPN_init(img_curr.copy(), target_pos, target_sz, SOT_tracker, dets[which_det_id][0], True)
+        state = SiamRPN_init(img_curr.copy(), target_pos, target_sz, SOT_tracker, str(which_det_id), True)
 
         states[id_track[i]] = state  # create a new id
         if prev_id is not None:
