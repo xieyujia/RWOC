@@ -265,7 +265,7 @@ def main(args, sot_tracker, deepMunkres, sst, optimizer, loss_writer):
                             else:
                                 # inactive mode, do nothing
                                 pass
-    
+                            #print(state_curr)
                             target_pos, target_sz, state_curr, _ = SiamRPN_track(state_curr, img_curr.copy(), sot_tracker,
                                                                                 train=True, CMC=(img_prev is not None and CMC),
                                                                                  prev_xyxy=prev_xyxy, w_matrix=w_matrix)
@@ -286,7 +286,7 @@ def main(args, sot_tracker, deepMunkres, sst, optimizer, loss_writer):
                         # get output from DHN, i.e. assignment matrix #
                         output_track_gt = deepMunkres(distance_matrix)
                         loss = torch.sum(output_track_gt*distance_matrix)
-
+                        #loss = torch.sum(tmp[0])
                         # loss backward and update weights
                         sot_tracker.zero_grad()
                         loss.backward()

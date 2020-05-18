@@ -155,7 +155,7 @@ def get_subwindow_tracking(im, pos, model_sz, original_sz, avg_chans, out_mode='
 # init a track and save it's appearance and current position in a dict #
 
 
-def SiamRPN_init(im, target_pos, target_sz, net, gt_id, train_bool=False, outputmode='torch', add_noise=False):
+def SiamRPN_init(im, target_pos, target_sz, net, gt_id, train_bool=True, outputmode='torch', add_noise=False):
     """
     init a track and save its reference image
     :param im: current frame, numpy array, [h, w, c]
@@ -203,7 +203,7 @@ def SiamRPN_init(im, target_pos, target_sz, net, gt_id, train_bool=False, output
     window = np.tile(window.flatten(), p.anchor_num)
 
     # state['track_id'] = track_id
-    assert (isinstance(gt_id, str) and train_bool==True) or (isinstance(gt_id, int) and train_bool==False)
+#    assert (isinstance(gt_id, str) and train_bool==True) or (isinstance(gt_id, int) and train_bool==False)
     state['gt_id'] = gt_id
     if train_bool:
         state['temple'] = z
