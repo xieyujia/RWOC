@@ -364,7 +364,8 @@ def main(args, sot_tracker, deepMunkres, sst, optimizer, loss_writer):
                             distance = np.array(distance)
     
                         # birth and death process, no need to be differentiable #
-    
+                        if bbox_track[frameid] is not None:
+                            bbox_track[frameid] = bbox_track[frameid].detach()
                         bbox_track[frameid], count_ids = \
                             tracking_birth_death(distance, bbox_track[frameid], frames_det, img_curr,
                                                  id_track, count_ids, frameid, birth_candidates, track_init,
