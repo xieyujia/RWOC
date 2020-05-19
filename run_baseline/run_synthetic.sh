@@ -1,0 +1,9 @@
+CUDA_VISIBLE_DEVICES=$1 time \
+python synthetic.py \
+--n 1000 \
+--d1 3 \
+--d2 2 \
+--noise_level 0.1 \
+--train_iter 100 \
+--batch_size 100 \
+--seed 1926 \

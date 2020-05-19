@@ -1,0 +1,17 @@
+CUDA_VISIBLE_DEVICES=$1 time python baseline.py \
+--data_type normal \
+--n 1000 \
+--train_level 0.9 \
+--d1 3 \
+--d2 10 \
+--noise_level 0.1 \
+--method sinkhorn_robust \
+--train_iter 50 \
+--max_inner_iter 200 \
+--batch_size 100 \
+--lr_R 5e-5 \
+--epsilon 1e-4 \
+--rho1 0.1 \
+--rho2 0.1 \
+--eta 1e-3 \
+--max_baseline_iter 10 \
