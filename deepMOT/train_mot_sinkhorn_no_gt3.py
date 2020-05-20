@@ -279,49 +279,49 @@ def main(args, sot_tracker, deepMunkres, sst, optimizer, loss_writer):
                             torch.cuda.empty_cache()
     
                         bbox_track[frameid] = torch.cat(tmp, dim=0)
-                        
+                        if str(frameid + 1) in frames_det.keys():                        
                          # get distance matrix tracks-gts #
-                        _, distance_matrix = make_single_matrix_torchV2_fast(frames_det[str(frameid + 1)],
+                            _, distance_matrix = make_single_matrix_torchV2_fast(frames_det[str(frameid + 1)],
                                                                                   bbox_track[frameid], h, w)
-                        # get output from DHN, i.e. assignment matrix #
-                        output_track_gt = deepMunkres(distance_matrix)
-                        loss = torch.sum(output_track_gt*distance_matrix)
-                        #loss = torch.sum(tmp[0])
-                        # loss backward and update weights
-                        sot_tracker.zero_grad()
-                        loss.backward()
-                        optimizer.step()
+                            # get output from DHN, i.e. assignment matrix #
+                            output_track_gt = deepMunkres(distance_matrix)
+                            loss = torch.sum(output_track_gt*distance_matrix)
+                            #loss = torch.sum(tmp[0])
+                            # loss backward and update weights
+                            sot_tracker.zero_grad()
+                            loss.backward()
+                            optimizer.step()
                         
-                        # save best model #
-                        if (iterations + 1) % args.save_freq == 0 and old_loss > loss.item():
-                            old_loss = float(loss.item())
-                            print("best model is saved into:", args.save_path +
-                                  "best_model_" + str(epoch) + ".pth")
+                            # save best model #
+                            if (iterations + 1) % args.save_freq == 0 and old_loss > loss.item():
+                                old_loss = float(loss.item())
+                                print("best model is saved into:", args.save_path +
+                                      "best_model_" + str(epoch) + ".pth")
     
-                            torch.save(sot_tracker.state_dict(),
-                                       args.save_path+"best_model_" + str(epoch) + ".pth")
+                                torch.save(sot_tracker.state_dict(),
+                                           args.save_path+"best_model_" + str(epoch) + ".pth")
     
-                        # print results #
-                        if (iterations + 1) % args.print_freq == 0:
-                            print('Epoch: [{}] Iterations: [{}]\tLoss {:.4f}'.format(epoch, iterations, float(loss.item())))
+                            # print results #
+                            if (iterations + 1) % args.print_freq == 0:
+                                print('Epoch: [{}] Iterations: [{}]\tLoss {:.4f}'.format(epoch, iterations, float(loss.item())))
     
-                            loss_writer.add_scalar('Loss', loss.item(), iterations)
+                                loss_writer.add_scalar('Loss', loss.item(), iterations)
     
-                            # save model #
-                            if (iterations + 1) % (args.save_freq * 20) == 0:
-                                print("model is saved into:", args.save_path +
-                                      "model_" + str(epoch) + ".pth")
+                                 # save model #
+                                if (iterations + 1) % (args.save_freq * 20) == 0:
+                                    print("model is saved into:", args.save_path +
+                                          "model_" + str(epoch) + ".pth")
     
-                                torch.save(sot_tracker.state_dict(), args.save_path + "model_" + str(epoch) + ".pth")
+                                    torch.save(sot_tracker.state_dict(), args.save_path + "model_" + str(epoch) + ".pth")
     
-                        iterations += 1
+                            iterations += 1
     
-                        # clean up
-                        del output_track_gt
-                        del distance_matrix
-                        del bbox_track[prev_frame_id]
-                        del tmp
-                        torch.cuda.empty_cache()
+                            # clean up
+                            del output_track_gt
+                            del distance_matrix
+                            del bbox_track[prev_frame_id]
+                            del tmp
+                            torch.cuda.empty_cache()
     
                     else:
                         # having no tracks
