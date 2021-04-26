@@ -21,7 +21,7 @@ This code has been tested on Ubuntu 16.04, Python 3.6, Pytorch> 0.4.1, CUDA 9.0 
 
 - Clone the repository 
 ```
-git clone https://github.com/yihongXU/deepMOT.git && cd deepmot
+git clone https://github.com/xieyujia/RWOC.git && cd RWOC/deepMOT
 ```
 **Option 1:**
 - Setup python environment
@@ -124,9 +124,6 @@ After finishing tracking, you can visualize your results by plotting bounding bo
 python plot_results.py
 ```
 the results are save by default under *deepmot/saved_results/imgs/test_folder*
-
-**Note:** 
-- we clean the detections with nms and threshold of detection scores. They are saved into numpy array in the folder *deepmot/clean_detections*, if you have trouble opening them, try to add *allow_pickle=True* to *np.load()* function.
 
 
 ## Acknowledgement <a name="Acknowledgement">
