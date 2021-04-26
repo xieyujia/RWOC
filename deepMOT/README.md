@@ -51,58 +51,6 @@ singularity shell --nv --bind yourLocalPath:yourPathInsideImage ./SingularityIma
 **- -bind: to link a singularity path with a local path. By doing this, you can find data from local PC inside Singularity image;** <br />
 **- -nv: use local Nvidia driver.**
 
-## Testing <a name="testing-models">
-We provide code for performing tracking with our pre-trained models on MOT Challenge dataset. The code outputs txt files for MOT Challenge submissions, they can also be used for plotting bounding boxes and visualization. 
-- [Setup](#environment-setup) your environment
-
-- Download MOT data
-Dataset can be downloaded here: e.g. [MOT17](https://motchallenge.net/data/MOT17/) 
-
-- Put *MOT* dataset into *deepmot/data/* and it should have the following structure:
-```
-            mot
-            |-------train
-            |    |
-            |    |---video_folder1
-            |    |   |---det
-            |    |   |---gt
-            |    |   |---img1
-            |    |
-            |    |---video_folder2
-            ...
-            |-------test
-            |    |
-            |    |---video_folder1
-            |    |   |---det
-            |    |   |---img1
-            ...
-```
-- Download pretrained models
-all the pretrained models can be downloaded here: <br />
-[pretrained models(google drive)](https://drive.google.com/drive/folders/1HPreiyWbOhgAxhCtvYvoB8wzt_reKzdW?usp=sharing) or <br />
-[pretrained models(tencent cloud)](https://share.weiyun.com/5rVqDmu)
-
--Put all pre-trained models to *deepmot/pretrained/*
-- run tracking code
-```
-python tracking_on_mot.py
-```
-for more details about parameters, do:
-```
-python tracking_on_mot.py -h
-```
-The results are save by default under *deepmot/saved_results/txts/test_folder/*.
-
-- Visualization
-After finishing tracking, you can visualize your results by plotting bounding box to images.
-```
-python plot_results.py
-```
-the results are save by default under *deepmot/saved_results/imgs/test_folder*
-
-**Note:** 
-- we clean the detections with nms and threshold of detection scores. They are saved into numpy array in the folder *deepmot/clean_detections*, if you have trouble opening them, try to add *allow_pickle=True* to *np.load()* function.
-
 
 ## Training <a name="training-models">
 
@@ -156,6 +104,29 @@ tensorboard --logdir=/mnt/beegfs/perception/yixu/opensource/deepMOT/logs/train_l
 ```
 pip install --upgrade tensorflow
 ```
+
+## Testing <a name="testing-models">
+
+Put all pre-trained models to *deepmot/pretrained/*
+- run tracking code
+```
+python tracking_on_mot.py
+```
+for more details about parameters, do:
+```
+python tracking_on_mot.py -h
+```
+The results are save by default under *deepmot/saved_results/txts/test_folder/*.
+
+- Visualization
+After finishing tracking, you can visualize your results by plotting bounding box to images.
+```
+python plot_results.py
+```
+the results are save by default under *deepmot/saved_results/imgs/test_folder*
+
+**Note:** 
+- we clean the detections with nms and threshold of detection scores. They are saved into numpy array in the folder *deepmot/clean_detections*, if you have trouble opening them, try to add *allow_pickle=True* to *np.load()* function.
 
 
 ## Acknowledgement <a name="Acknowledgement">
