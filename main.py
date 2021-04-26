@@ -94,7 +94,7 @@ max_inner_iter = args.max_inner_iter
 unroll_steps = args.unroll_steps
 print_every = args.print_every
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device('cpu')
 
 if args.data_type == 'normal':
     x = np.random.normal(1,1,size=[n, d])
@@ -183,12 +183,12 @@ if args.method!='oracle' and args.method!='ls':
     best_est = None
     lam = 1e-4
     y_sort = np.sort(y, axis=0)
-    for batch_idx in range(int(1e5)):
+    for batch_idx in range(int(1e4)):
 
         batch_x1, batch_x2_y = data_iterator.get_batch(d)
         with torch.no_grad():
-            x_inv = torch.inverse(batch_x1.transpose(0,1).mm(batch_x1)+lam*torch.eye(d)).mm(batch_x1.transpose(0,1))
-            w_est = x_inv.mm(batch_x2_y).data.numpy()
+            x_inv = torch.inverse(batch_x1.transpose(0,1).mm(batch_x1)+lam*torch.eye(d, device=device)).mm(batch_x1.transpose(0,1))
+            w_est = x_inv.mm(batch_x2_y).cpu().numpy()
     
         error = np.sum(np.abs(np.sort(x.dot(w_est), axis=0)-y_sort),axis=1)
         in_set = np.sum(error<1e-2)
@@ -233,8 +233,8 @@ if args.method=='em':
 
 elif args.method=='oracle' or args.method=='ls' or residual/var_y<10:
     
-    Rmodel = torch.nn.Linear(d, 1, bias=False).to(device)
-    
+    Rmodel = torch.nn.Linear(d, 1, bias=False)#.to(device)
+
     if args.method!='oracle' and args.method!='ls':
         for parameter in Rmodel.parameters():
             parameter.data = torch.FloatTensor(best_est).transpose(0,1)
@@ -243,7 +243,7 @@ elif args.method=='oracle' or args.method=='ls' or residual/var_y<10:
     
     optimizer_R = torch.optim.SGD(
         Rmodel.parameters(), lr=lr_R, momentum=0.9, weight_decay=5e-4)
-    
+    Rmodel = Rmodel.to(device)
     loss_list = []
     batch_loss_list = []
     epoch_count = 0
@@ -257,6 +257,7 @@ elif args.method=='oracle' or args.method=='ls' or residual/var_y<10:
             optimizer_R.zero_grad()
 
             batch_x, batch_y = data_iterator.get_batch(bs)     
+            
             pred = Rmodel(batch_x)
         
             loss = torch.mean((batch_y-pred)**2)
@@ -267,6 +268,7 @@ elif args.method=='oracle' or args.method=='ls' or residual/var_y<10:
             optimizer_R.zero_grad()
 
             batch_x, batch_y = data_iterator.get_batch(bs)   
+            
             pred = Rmodel(batch_x)
             pred_sort, _ = torch.sort(pred, dim=0)
             y_sort, _ = torch.sort(batch_y, dim=0)
@@ -278,7 +280,6 @@ elif args.method=='oracle' or args.method=='ls' or residual/var_y<10:
         else:
             batch_x, batch_y = data_iterator.get_batch(bs)
             
-            batch_x1 = batch_x1.unsqueeze(0)
             pred = Rmodel(batch_x)
             
             batch_y = batch_y.unsqueeze(1)
@@ -309,7 +310,10 @@ elif args.method=='oracle' or args.method=='ls' or residual/var_y<10:
             if loss_list[-1]<best_loss:
                 best_loss = loss_list[-1]
                 Rmodel.eval()
-                pred2=Rmodel(torch.FloatTensor(x_val)).data.numpy()
+                x_val_tensor = torch.FloatTensor(x_val)
+                if torch.cuda.is_available():
+                    x_val_tensor = x_val_tensor.cuda()
+                pred2=Rmodel(x_val_tensor).detach().cpu().numpy()
                 best_residual= np.sum((y_val-pred2)**2)
                 residual_list.append(best_residual/var_y)
 
