@@ -1,34 +1,11 @@
-# DeepMOT
+# ROBOT
 
-### Important Note
-**This is the branch refers to the obsolete version of our work and it is no more maintained, a newer version with code and models as well as data will be provided very soon, please go the master branch.**
+This is the official implementation of the MOT code for the paper:
 
-[![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0) [![HitCount](http://hits.dwyl.io/yihongxu/deepmot.svg)](http://hits.dwyl.io/yihongxu/deepmot)
+**A Hypergradient Approach to Robust Regression without Correspondence** <br />
 
-This is the official implementation with *training* code for the paper:
+**[[Paper](https://openreview.net/pdf?id=l35SB-_raSQ)]** <br />
 
-**How To Train Your Deep Multi-Object Tracker** <br />
-[Yihong Xu](https://team.inria.fr/perception/team-members/yihong-xu/), [Aljosa Osep](https://dvl.in.tum.de/team/osep/), [Yutong Ban](https://team.inria.fr/perception/team-members/yutong-ban/), [Radu Horaud](https://team.inria.fr/perception/team-members/radu-patrice-horaud/),[Laura Leal-Taixé](https://dvl.in.tum.de/team/lealtaixe/), [Xavier Alameda-Pineda](https://team.inria.fr/perception/team-members/xavier-alameda-pineda/) <br />
-**[[Paper](https://arxiv.org/abs/1906.06618)]** <br />
-
-
-<div align="center">
-  <img src="https://gitlab.inria.fr/yixu/deepmot/raw/master/pipelineV3.png" width="900px" />
-</div>
-
-### Bibtex
-If you find this code useful, please star the project and consider citing:
-
-```
-@misc{xu2019train,
-    title={How To Train Your Deep Multi-Object Tracker},
-    author={Yihong Xu and Aljosa Osep and Yutong Ban and Radu Horaud and Laura Leal-Taixe and Xavier Alameda-Pineda},
-    year={2019},
-    eprint={1906.06618},
-    archivePrefix={arXiv},
-    primaryClass={cs.CV}
-}
-```
 
 ## Contents
 1. [Environment Setup](#environment-setup)
@@ -126,22 +103,6 @@ the results are save by default under *deepmot/saved_results/imgs/test_folder*
 **Note:** 
 - we clean the detections with nms and threshold of detection scores. They are saved into numpy array in the folder *deepmot/clean_detections*, if you have trouble opening them, try to add *allow_pickle=True* to *np.load()* function.
 
-### Results
-We provide codes for evaluting tracking results in terms of MOTP and MOTA:
-```
-python evaluation.py --txts_path=yourTxTfilesFolder
-```
-MOT17:
-
-|  dataset  | MOTA     | MOTP     | FN     | FP    | IDsW | Total Nb. Objs |
-|-----------|----------|----------|--------|-------|------|----------------|
-|   train   |  49.249% |  82.812% | 149575 | 19807 | 1592 |     336891     |
-|   test    |  48.500% |  76.900% | 262765 | 24544 | 3160 |     564228     |
-
-**Note:** 
-- the results are better than reported in the paper because we add Camera Motion Compensation to deal with moving camera videos.
-- the results can be slightly different depending on the running environment.
-
 
 ## Training <a name="training-models">
 
@@ -196,15 +157,21 @@ tensorboard --logdir=/mnt/beegfs/perception/yixu/opensource/deepMOT/logs/train_l
 pip install --upgrade tensorflow
 ```
 
-## Demo <a name="demo">
-<div align="center">
-  <img src="https://github.com/yihongXU/deepMOT/raw/master/demo.gif" width="800px" />
-</div>
 
 ## Acknowledgement <a name="Acknowledgement">
 Some codes are modified and network pretrained weights are obtained from the following repositories: <br />
+**Code skeleton**: [**DeepMOT**](https://github.com/yihongXU/deepMOT)
 **Single Object Tracker**: [**SiamRPN**](https://github.com/foolwood/DaSiamRPN), [**Tracktor**](https://github.com/phil-bergmann/tracking_wo_bnw/tree/master/src/tracktor).
 ```
+@misc{xu2019train,
+    title={How To Train Your Deep Multi-Object Tracker},
+    author={Yihong Xu and Aljosa Osep and Yutong Ban and Radu Horaud and Laura Leal-Taixe and Xavier Alameda-Pineda},
+    year={2019},
+    eprint={1906.06618},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
+}
+
 @inproceedings{Zhu_2018_ECCV,
   title={Distractor-aware Siamese Networks for Visual Object Tracking},
   author={Zhu, Zheng and Wang, Qiang and Bo, Li and Wu, Wei and Yan, Junjie and Hu, Weiming},
